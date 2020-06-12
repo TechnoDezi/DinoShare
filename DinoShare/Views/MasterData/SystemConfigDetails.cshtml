@@ -1,0 +1,68 @@
+﻿@model DinoShare.ViewModels.SystemConfigViewModelFactory.SystemConfigViewModel
+@{
+    ViewData["Title"] = "System Settings Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Scripts
+    {
+    <script type="text/javascript">
+
+    </script>
+}
+<div class="panel">
+    <div class="pad-all file-manager">
+        <div class="fixed-fluid">
+            <div class="fluid file-panel">
+                <div class="bord-btm pad-ver">
+                    <ol class="breadcrumb">
+                        <li><a href="#">Administration</a></li>
+                        <li><a href="#">System Settings</a></li>
+                        <li class="active">Details</li>
+                    </ol>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-12 p-4">
+                            @if (!string.IsNullOrEmpty(ViewBag.Error))
+                            {
+                                <div class="alert alert-danger">
+                                    <p>
+                                        @ViewBag.Error
+                                    </p>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(ViewBag.Success))
+                            {
+                                <div class="alert alert-success">
+                                    <p>
+                                        @ViewBag.Success
+                                    </p>
+                                </div>
+                            }
+                        <form asp-controller="MasterData" asp-action="SystemConfigDetails" class="form-horizontal">
+                            <div class="form-group">
+                                <label class="control-label">Description</label>
+                                <input type="text" class="form-control" asp-for="Description">
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">Config Value</label>
+                                <input type="text" class="form-control" asp-for="ConfigValue">
+                            </div>
+                            <input type="hidden" asp-for="SystemConfigurationID" />
+                            <input type="hidden" asp-for="EventCode" />
+                            <hr />
+                            <div class="row">
+                                <div class="col-md-12 text-right">
+                                    <a href="/MasterData/SystemConfigList" class="btn btn-link">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </div>
+                        </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

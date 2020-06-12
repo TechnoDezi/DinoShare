@@ -1,0 +1,359 @@
+﻿@model DinoShare.ViewModels.FileListViewModelFactory.FileListViewModel
+@{
+    ViewData["Title"] = "Files";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section Scripts
+    {
+    <script src="~/js/vue.cool-table.js"></script>
+    <script src="~/plugins/dropzone/min/dropzone.min.js"></script>
+    <link href="~/plugins/dropzone/dropzone.css" rel="stylesheet" />
+    <script type="text/javascript">
+        var pageModel = @Json.Serialize(Model);
+        var timerId = null;
+        var listCurrentPage = null;
+        var listReloaded = false;
+
+        Dropzone.autoDiscover = false;
+        var currentFile = null;
+        var myDropzone = null;
+
+        $(function () {
+            SetupVideoUpload();
+        });
+
+        Vue.component(VueCoolTable.name, VueCoolTable);
+
+        var searchApp = new Vue({
+            el: '#vue-app',
+            data: {
+                errors: [],
+                messages: [],
+                model: pageModel,
+                searchValue: "",
+                activeFolder: {},
+                files: null,
+                headers: [
+                    { text: 'File Name', code: 'FileName', disableSorting: false },
+                    { text: 'Created Date', code: 'CreatedDate', disableSorting: false },
+                    { text: 'Size Mb', code: 'SizeMB', disableSorting: false },
+                    { text: 'Actions', code: '', disableSorting: true },
+                ]
+            },
+            mounted: function () {
+                if (this.model.folderList.length > 0) {
+                    this.activeFolder = this.model.folderList[0];
+                    this.LoadFiles();
+                }
+            },
+            methods: {
+                onPageChange: function (pagination) {
+                    this.LoadFiles(pagination);
+                },
+                SetActiveFolder: function (folder) {
+                    this.activeFolder = folder;
+                    this.LoadFiles();
+                },
+                LoadFiles: function (pagination) {
+                    var self = this;
+
+                    var postModel = {
+                        searchValue: self.$data.searchValue,
+                        Pagination: (pagination === undefined || pagination === null) ? {
+                            top: 10,
+                        } : pagination,
+                        FolderID: this.activeFolder.folderID
+                    };
+
+                    self.$data.model.searchValue = self.$data.searchValue;
+                    $.post("/FileShare/FolderFileList", postModel, function (response) {
+                        if (response.result) {
+                            self.$data.files = response.data;
+                            listReloaded = true;
+                        }
+                        else {
+                            self.$data.messages = [];
+                            self.$data.errors = [];
+                            self.$data.errors.push({ description: response.message });
+                        }
+                    })
+                },
+                RemoveButtonOnClick: function (item) {
+                    var self = this;
+                    $.post("@Url.Action("RemoveFile", "FileShare")", { ID: item.folderDirectoryFileID }, function (response) {
+                        if (response.result == true) {
+                            self.LoadFiles(self.$data.files.pagination);
+                            self.$data.messages = [];
+                            self.$data.errors = [];
+                            self.$data.messages.push({ description: response.message });
+                        }
+                        else {
+                            self.$data.messages = [];
+                            self.$data.errors = [];
+                            self.$data.errors.push({ description: response.message });
+                        }
+                    });
+                },
+                Settime: function (callback) {
+                    var self = this;
+                    clearTimeout(timerId);
+                    timerId = setTimeout(
+                        function (d) { return searchApp.LoadFiles(self.$data.files.pagination); },
+                        1500
+                    );
+                },
+            },
+            watch: {
+                searchValue: function (val) {
+                    if (val.length > 3) {
+                        this.Settime();
+                    }
+                    if (val.length == 0) {
+                        this.Settime();
+                    }
+                }
+            },
+        });
+
+        function SetupVideoUpload() {
+            myDropzone = new Dropzone("#dropzone", {
+                url: "/api/FileShare/UploadFile",
+                params: function (files, xhr, chunk) {
+                    if (chunk) {
+                        return {
+                            dzUuid: chunk.file.upload.uuid,
+                            dzChunkIndex: chunk.index,
+                            dzTotalFileSize: chunk.file.size,
+                            dzCurrentChunkSize: chunk.dataBlock.data.size,
+                            dzTotalChunkCount: chunk.file.upload.totalChunkCount,
+                            dzChunkByteOffset: chunk.index * this.options.chunkSize,
+                            dzChunkSize: this.options.chunkSize,
+                            dzFilename: chunk.file.name,
+                            folderID: searchApp.activeFolder.folderID,
+                        };
+                    }
+                },
+                parallelUploads: 1,  // since we're using a global 'currentFile', we could have issues if parallelUploads > 1, so we'll make it = 1
+                maxFiles: 1,    //we only want to upload one video
+                maxFilesize: 100000,   // max individual file size 1024 MB
+                chunking: true,      // enable chunking
+                forceChunking: true, // forces chunking when file.size < chunkSize
+                parallelChunkUploads: false, // allows chunks to be uploaded in parallel (this is independent of the parallelUploads option)
+                chunkSize: 20000000,  // chunk size 1,000,000 bytes (~20MB)
+                retryChunks: true,   // retry chunks on failure
+                retryChunksLimit: 6, // retry maximum of 3 times (default is 3)
+                acceptedFiles: null, //".mp4,.mpg,.wmv,.avi,.m4a,.m4v,.mkv,.mov",
+                chunksUploaded: function (file, done) {
+                    // All chunks have been uploaded. Perform any other actions
+                    currentFile = file;
+
+                    // This calls server-side code to merge all chunks for the currentFile
+                    $.ajax({
+                        type: "POST",
+                        contentType: "application/json",
+                        dataType: "json",
+                        data: JSON.stringify({
+                            dzIdentifier: currentFile.upload.uuid,
+                            fileName: encodeURIComponent(currentFile.name),
+                            expectedBytes: currentFile.size,
+                            totalChunks: currentFile.upload.totalChunkCount,
+                            folderID: searchApp.activeFolder.folderID
+                        }),
+                        url: "/api/FileShare/CommitChunks",
+                        success: function (data) {
+                            // Must call done() if successful
+                            done();
+
+                            searchApp.LoadFiles();
+                        },
+                        error: function (msg) {
+                            console.log(msg)
+                            currentFile.accepted = false;
+                            myDropzone._errorProcessing([currentFile], msg.responseText);
+                        }
+                    });
+                },
+                init: function () {
+
+                    // This calls server-side code to delete temporary files created if the file failed to upload
+                    // This also gets called if the upload is canceled
+                    this.on('error', function (file, errorMessage) {
+                        $("#btnSave").show();
+
+                        $.ajax({
+                            type: "POST",
+                            contentType: "application/json",
+                            dataType: "json",
+                            data: JSON.stringify({
+                                dzIdentifier: file.upload.uuid,
+                                fileName: encodeURIComponent(file.name),
+                                expectedBytes: file.size,
+                                totalChunks: file.upload.totalChunkCount,
+                                folderID: searchApp.activeFolder.folderID
+                            }),
+                            url: "/api/FileShare/DeleteCanceledChunks",
+                            success: function (data) {
+                                // nothing
+                            }
+                        });
+                    });
+                    this.on('success', function () {
+
+                    });
+                    this.on("addedfile", function (file) {
+
+                    });
+                    this.on("uploadprogress", function (file, progress, bytesSent) {
+                        progress = bytesSent / file.size * 100;
+                        $('.dz-upload').width(progress + "%");
+                    });
+                }
+            });
+        }
+    </script>
+}
+<div class="panel" id="vue-app">
+    <div class="pad-all file-manager">
+        <div class="fixed-fluid">
+            <div class="fixed-sm-200 pull-sm-left file-sidebar">
+                <div class="bord-btm pad-btm" v-if="activeFolder != null && activeFolder.allowEdit == true">
+                    <button class="btn btn-block btn-lg btn-info v-middle" data-toggle="modal" data-target="#uploadModal">Upload Files</button>
+                    <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                    <h4 class="modal-title" id="myModalLabel">Upload file to {{activeFolder.description}}</h4>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="dropzone dz-clickable" id="dropzone">
+                                        <div class="dz-default dz-message">
+                                            <div class="dz-icon">
+                                                <i class="icon-feather-upload-cloud"></i>
+                                            </div>
+                                            <div>
+                                                <span class="dz-text">Drop files to upload</span>
+                                                <p class="text-sm text-muted">or click to pick manually</p>
+                                            </div>
+                                        </div>
+                                        <div class="fallback">
+                                            <input name="file" type="file" multiple />
+                                            <input type="submit" value="Upload" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="pad-hor mar-top text-main text-bold text-sm text-uppercase">Folders</p>
+                <div class="list-group bg-trans pad-btm bord-btm">
+                    <template v-for="folder in model.folderList">
+                        <a v-if="folder.folderID == activeFolder.folderID" href="#" class="list-group-item text-bold" v-on:click="SetActiveFolder(folder)">
+                            <span class="text-main"><i class="pli-folder-with-document icon-lg icon-fw"></i> {{folder.description}}</span>
+                        </a>
+                        <a v-if="folder.folderID != activeFolder.folderID" href="#" class="list-group-item" v-on:click="SetActiveFolder(folder)">
+                            <i class="pli-folder icon-lg icon-fw"></i> {{folder.description}}
+                        </a>
+                    </template>
+                </div>
+            </div>
+            <div class="fluid file-panel">
+                @if (!string.IsNullOrEmpty(ViewBag.Error))
+                {
+                    <div class="alert alert-danger">
+                        <p>
+                            @ViewBag.Error
+                        </p>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(ViewBag.Success))
+                {
+                    <div class="alert alert-success">
+                        <p>
+                            @ViewBag.Success
+                        </p>
+                    </div>
+                }
+                <div v-if="errors.length > 0" v-for="(error, index) in errors" class="alert alert-danger" v-cloak>
+                    {{error.description}}
+                </div>
+                <div v-if="messages.length > 0" v-for="(message, index) in messages" class="alert alert-success" v-cloak>
+                    {{message.description}}
+                </div>
+                <div class="bord-btm pad-ver">
+                    <ol class="breadcrumb">
+                        <li><a href="#">File Share</a></li>
+                        <li class="active">File Manager</li>
+                    </ol>
+                </div>
+                <div class="file-toolbar bord-btm">
+                    <div class="btn-file-toolbar">
+                        <div class="row">
+                            <div class="col-xs-6">
+                                <a class="btn btn-icon add-tooltip" href="#" data-original-title="Refresh" v-on:click="LoadFiles()" data-toggle="tooltip"><i class="icon-2x pli-reload-3"></i></a>
+                            </div>
+                            <div class="xs-6">
+                                <div class="input-group">
+                                    <span class="input-group-addon"><i class="pli-magnifi-glass"></i></span>
+                                    <input class="form-control" type="text" placeholder="Search" v-model="searchValue">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @*<div class="btn-file-toolbar">
+                            <a class="btn btn-icon add-tooltip" href="#" data-original-title="New Folder" data-toggle="tooltip"><i class="icon-2x pli-folder"></i></a>
+                            <a class="btn btn-icon add-tooltip" href="#" data-original-title="New File" data-toggle="tooltip"><i class="icon-2x pli-file-add"></i></a>
+                            <a class="btn btn-icon add-tooltip" href="#" data-original-title="Edit File" data-toggle="tooltip"><i class="icon-2x pli-file-edit"></i></a>
+                        </div>
+                        <div class="btn-file-toolbar pull-right">
+                            <a class="btn btn-icon add-tooltip" href="#" data-original-title="Delete" data-toggle="tooltip"><i class="icon-2x pli-recycling"></i></a>
+                            <a class="btn btn-icon add-tooltip" href="#" data-original-title="Download" data-toggle="tooltip"><i class="icon-2x pli-download-from-cloud"></i></a>
+                        </div>*@
+                </div>
+                <div class="file-list" v-if="files != null">
+                    <cool-table table-class="table table-striped" :items="files.itemList" :pagination="files.pagination" :headers="headers" @@pagechange="onPageChange">
+                        <template v-slot:body="slotProps">
+                            <tr v-for="item in slotProps.rowItems" style="cursor:pointer">
+                                <td>{{item.fileName}}</td>
+                                <td>{{item.createdDate}}</td>
+                                <td>{{item.sizeMB}}</td>
+                                <td>
+                                    <a :href="'/FileShare/DownloadFile/' + item.folderDirectoryFileID" target="_blank" title="Download file" class="btn btn-success btn-icon">
+                                        <i class="psi-download"></i>
+                                    </a>
+                                    <button v-if="item.isUploadDirectory == true && activeFolder.allowDelete == true" type="button" title="Delete File" class="btn btn-danger btn-icon" data-toggle="modal" :data-target="'#remModal_' + item.folderDirectoryFileID">
+                                        <i class="psi-trash"></i>
+                                    </button>
+                                    <div class="modal fade" :id="'remModal_' + item.folderDirectoryFileID" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+                                        <div class="modal-dialog" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                                    <h4 class="modal-title" id="myModalLabel">Remove file</h4>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>
+                                                        Are you sure you wish to remove the file {{item.fileName}}
+                                                    </p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                                    <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="RemoveButtonOnClick(item)">Remove</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </cool-table>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

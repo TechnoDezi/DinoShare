@@ -1,0 +1,64 @@
+﻿@model DinoShare.ViewModels.FolderViewModelFactory.FolderDetailsViewModel
+@{
+    ViewData["Title"] = "Folder Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section Scripts
+    {
+    <script type="text/javascript">
+        $(function () {
+            
+        });
+    </script>
+}
+<div class="panel">
+    <div class="pad-all file-manager">
+        <div class="fixed-fluid">
+            <div class="fluid file-panel">
+                <div class="bord-btm pad-ver">
+                    <ol class="breadcrumb">
+                        <li><a href="#">Administration</a></li>
+                        <li><a href="#">Email Templates</a></li>
+                        <li class="active">Details</li>
+                    </ol>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-12 p-4">
+                            @if (!string.IsNullOrEmpty(ViewBag.Error))
+                            {
+                                <div class="alert alert-danger">
+                                    <p>
+                                        @ViewBag.Error
+                                    </p>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(ViewBag.Success))
+                            {
+                                <div class="alert alert-success">
+                                    <p>
+                                        @ViewBag.Success
+                                    </p>
+                                </div>
+                            }
+                        <form asp-controller="FileShare" asp-action="FolderDetails" class="form-horizontal">
+                            <div class="form-group">
+                                <label class="control-label">Description</label>
+                                <input type="text" class="form-control" asp-for="Description">
+                            </div>
+                            <input type="hidden" asp-for="FolderID" />
+                            <hr />
+                            <div class="row">
+                                <div class="col-md-12 text-right">
+                                    <a href="/FileShare/FolderList" class="btn btn-link">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </div>
+                        </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,83 @@
+﻿@model DinoShare.ViewModels.EmailTemplateViewModelFactory.EmailTemplateViewModel
+@{
+    ViewData["Title"] = "Email Template Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section Scripts
+    {
+
+    <script src="~/lib/summernote/summernote.js"></script>
+    <link href="~/lib/summernote/summernote.css" rel="stylesheet" />
+    <script type="text/javascript">
+        $(function () {
+            $("#TemplateBody").summernote();
+        });
+    </script>
+}
+<div class="panel">
+    <div class="pad-all file-manager">
+        <div class="fixed-fluid">
+            <div class="fluid file-panel">
+                <div class="bord-btm pad-ver">
+                    <ol class="breadcrumb">
+                        <li><a href="#">Administration</a></li>
+                        <li><a href="#">Email Templates</a></li>
+                        <li class="active">Details</li>
+                    </ol>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-12 p-4">
+                            @if (!string.IsNullOrEmpty(ViewBag.Error))
+                            {
+                                <div class="alert alert-danger">
+                                    <p>
+                                        @ViewBag.Error
+                                    </p>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(ViewBag.Success))
+                            {
+                                <div class="alert alert-success">
+                                    <p>
+                                        @ViewBag.Success
+                                    </p>
+                                </div>
+                            }
+                            <form asp-controller="MasterData" asp-action="EmailTemplateDetails" class="form-horizontal">
+                                <div class="form-group">
+                                    <label class="control-label">Event Code</label><br />
+                                    <label class="form-control-static">@Model.EventCode</label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">Description</label>
+                                    <input type="text" class="form-control" asp-for="Description">
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">Template tags</label><br />
+                                    @foreach (var item in Model.TemplateBodyTags)
+                                    {
+                                        <span style="border:solid 1px gray;padding:4px">@item</span>
+                                    }
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">Template Body</label>
+                                    <textarea class="form-control" rows="10" asp-for="TemplateBody"></textarea>
+                                </div>
+                                <input type="hidden" asp-for="EmailTemplateID" />
+                                <input type="hidden" asp-for="TemplateBodyTags" />
+                                <hr />
+                                <div class="row">
+                                    <div class="col-md-12 text-right">
+                                        <a href="/MasterData/EmailTemplateList" class="btn btn-link">Cancel</a>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

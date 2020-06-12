@@ -1,0 +1,196 @@
+﻿@model DinoShare.ViewModels.FolderViewModelFactory.FolderAccessListViewModel
+@{
+    ViewData["Title"] = "Folder Access List";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section Scripts
+    {
+    <script src="~/js/vue.cool-table.js"></script>
+    <script type="text/javascript">
+        var pageModel = @Json.Serialize(Model);
+        var timerId = null;
+        var listCurrentPage = null;
+        var listReloaded = false;
+
+        Vue.component(VueCoolTable.name, VueCoolTable);
+
+        var searchApp = new Vue({
+            el: '#vue-app',
+            data: {
+                errors: [],
+                messages: [],
+                model: pageModel,
+                searchValue: pageModel.searchValue,
+                headers: [
+                    { text: 'Folder', code: 'Description', disableSorting: false },
+                    { text: 'User', code: 'UserDisplayName', disableSorting: false },
+                    { text: 'Allow Edit', code: 'AllowEdit', disableSorting: false },
+                    { text: 'Allow Delete', code: 'AllowDelete', disableSorting: false },
+                        { text: 'Actions', code: '', disableSorting: true },
+                    ]
+            },
+            methods: {
+                onPageChange: function (pagination) {
+                    this.ReloadModel(pagination);
+                },
+                ReloadModel: function (pagination, callback) {
+                    var self = this;
+
+                    var postModel = {
+                        searchValue: self.$data.searchValue,
+                        Pagination: pagination,
+                        folderID: self.$data.model.folderID
+                    };
+
+                    self.$data.model.searchValue = self.$data.searchValue;
+                    $.post("/FileShare/FolderAccessList", postModel, function (response) {
+                        if (response.result) {
+                            self.$data.model = response.data;
+                            listReloaded = true;
+                            if (callback != null && callback != undefined) {
+                                callback();
+                            }
+                        }
+                        else {
+                            self.$data.messages = [];
+                            self.$data.errors = [];
+                            self.$data.errors.push({ description: response.message });
+                        }
+                    })
+                },
+                Settime: function (callback) {
+                    var self = this;
+                    clearTimeout(timerId);
+                    timerId = setTimeout(
+                        function (d) { return searchApp.ReloadModel(self.$data.model.pagination); },
+                        1500
+                    );
+                },
+                RemoveButtonOnClick: function (item) {
+                    var self = this;
+                    $.post("@Url.Action("RemoveFolderAccess", "FileShare")", { ID: item.folderUserID }, function (response) {
+                        if (response.result == true) {
+                            self.ReloadModel(self.$data.model.pagination);
+                            self.$data.messages = [];
+                            self.$data.errors = [];
+                            self.$data.messages.push({ description: response.message });
+                        }
+                        else {
+                            //Show error message
+                        }
+                    });
+                }
+            },
+
+            watch: {
+                searchValue: function (val) {
+                    if (val.length > 3) {
+                        this.Settime();
+                    }
+                    if (val.length == 0) {
+                        this.Settime();
+                    }
+                }
+            },
+            updated: function () {
+            },
+            beforeUpdate: function () {
+            }
+        });
+    </script>
+}
+<div class="panel" id="vue-app">
+    <div class="pad-all file-manager">
+        <div class="fixed-fluid">
+            <div class="fluid file-panel">
+                <div class="bord-btm pad-ver">
+                    <ol class="breadcrumb">
+                        <li><a href="#">File Share</a></li>
+                        <li><a href="#">Folders</a></li>
+                        <li class="active">Folder Access</li>
+                    </ol>
+                </div>
+                <div class="row">
+                    <div class="col-md-11">
+                        <div class="input-group mar-btm">
+                            <span class="input-group-addon"><i class="pli-magnifi-glass"></i></span>
+                            <input class="form-control" type="text" placeholder="Search" v-model="searchValue">
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <a href="/FileShare/FolderAccessDetails/@Guid.Empty?FolderID=@Model.FolderID" title="Add User Access" class="btn btn-mint btn-icon">
+                            <i class="psi-add icon-lg"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        @if (!string.IsNullOrEmpty(ViewBag.Error))
+                        {
+                            <div class="alert alert-danger">
+                                <p>
+                                    @ViewBag.Error
+                                </p>
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(ViewBag.Success))
+                        {
+                            <div class="alert alert-success">
+                                <p>
+                                    @ViewBag.Success
+                                </p>
+                            </div>
+                        }
+                        <div v-if="errors.length > 0" v-for="(error, index) in errors" class="alert alert-danger" v-cloak>
+                            {{error.description}}
+                        </div>
+                        <div v-if="messages.length > 0" v-for="(message, index) in messages" class="alert alert-success" v-cloak>
+                            {{message.description}}
+                        </div>
+                        <cool-table table-class="table table-striped" :items="model.itemList" :pagination="model.pagination" :headers="headers" @@pagechange="onPageChange">
+                            <template v-slot:body="slotProps">
+                                <tr v-for="item in slotProps.rowItems" style="cursor:pointer">
+                                    <td>{{item.description}}</td>
+                                    <td>{{item.userDisplayName}}</td>
+                                    <td>
+                                        <i class="fa fa-check" v-if="item.allowEdit == true"></i>
+                                    </td>
+                                    <td>
+                                        <i class="fa fa-check" v-if="item.allowDelete == true"></i>
+                                    </td>
+                                    <td>
+                                        <a :href="'/FileShare/FolderAccessDetails/' + item.folderUserID + '?FolderID=' + item.folderID" title="Edit" class="btn btn-success btn-icon">
+                                            <i class="psi-pen"></i>
+                                        </a>
+                                        <button type="button" title="Remove" class="btn btn-danger btn-icon" data-toggle="modal" :data-target="'#remModal_' + item.folderUserID">
+                                            <i class="psi-trash"></i>
+                                        </button>
+                                        <div class="modal fade" :id="'remModal_' + item.folderUserID" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                                        <h4 class="modal-title" id="myModalLabel">Remove folder access</h4>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>
+                                                            Are you sure you wish to remove the folder access for {{item.userDisplayName}}
+                                                        </p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                                        <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="RemoveButtonOnClick(item)">Remove</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </cool-table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

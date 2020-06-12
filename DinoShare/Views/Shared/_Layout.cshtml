@@ -1,0 +1,207 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>@ViewData["Title"] - DinoShare</title>
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700' rel='stylesheet' type='text/css'>
+    <link href="~/css/bootstrap.min.css" rel="stylesheet">
+    <link href="~/css/nifty.min.css" rel="stylesheet">
+    <link href="~/plugins/ionicons/css/ionicons.css" rel="stylesheet" />
+    <link href="~/plugins/font-awesome/css/font-awesome.css" rel="stylesheet" />
+    <link href="~/premium/icon-sets/icons/line-icons/premium-line-icons.css" rel="stylesheet" />
+    <link href="~/premium/icon-sets/icons/solid-icons/premium-solid-icons.css" rel="stylesheet" />
+    <link href="~/plugins/pace/pace.min.css" rel="stylesheet">
+    <script src="~/plugins/pace/pace.min.js"></script>
+
+
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div id="container" class="effect aside-float aside-bright mainnav-lg">
+        <header id="navbar">
+            <div id="navbar-container" class="boxed">
+
+                <!--Brand logo & name-->
+                <!--================================-->
+                <div class="navbar-header">
+                    <a href="/" class="navbar-brand">
+                        <img src="~/img/dinoshare.png" alt="Dino Share" class="brand-icon">
+                        <div class="brand-title">
+                            <span class="brand-text">Dino Share</span>
+                        </div>
+                    </a>
+                </div>
+                <!--================================-->
+                <!--End brand logo & name-->
+                <!--Navbar Dropdown-->
+                <!--================================-->
+                <div class="navbar-content">
+                    <ul class="nav navbar-top-links">
+
+                        <!--Navigation toogle button-->
+                        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+                        <li class="tgl-menu-btn">
+                            <a class="mainnav-toggle" href="#">
+                                <i class="pli-list-view"></i>
+                            </a>
+                        </li>
+
+                    </ul>
+                    <ul class="nav navbar-top-links">
+                        <!--User dropdown-->
+                        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+                        <li id="dropdown-user" class="dropdown">
+                            <a href="#" data-toggle="dropdown" class="dropdown-toggle text-right">
+                                <span class="ic-user pull-right">
+                                    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+                                    <!--You can use an image instead of an icon.-->
+                                    <!--<img class="img-circle img-user media-object" src="img/profile-photos/1.png" alt="Profile Picture">-->
+                                    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+                                    <i class="pli-male"></i>
+                                </span>
+                                <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+                                <!--You can also display a user name in the navbar.-->
+                                <!--<div class="username hidden-xs">Aaron Chavez</div>-->
+                                <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+                            </a>
+
+
+                            <div class="dropdown-menu dropdown-menu-sm dropdown-menu-right panel-default">
+                                <ul class="head-list">
+                                    <li>
+                                        <a href="#"><i class="pli-male icon-lg icon-fw"></i> Profile</a>
+                                    </li>
+                                    <li>
+                                        <a href="/account/logoff"><i class="pli-unlock icon-lg icon-fw"></i> Logout</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <!--================================-->
+                <!--End Navbar Dropdown-->
+
+            </div>
+        </header>
+
+        <div class="boxed">
+
+            <!--CONTENT CONTAINER-->
+            <!--===================================================-->
+            <div id="content-container">
+                <div id="page-head">
+
+
+                </div>
+
+
+                <!--Page content-->
+                <!--===================================================-->
+                <div id="page-content">
+                    @RenderBody()
+                </div>
+            </div>
+
+            <!--MAIN NAVIGATION-->
+            <!--===================================================-->
+            <nav id="mainnav-container">
+                <div id="mainnav">
+
+                    <!--Menu-->
+                    <!--================================-->
+                    <div id="mainnav-menu-wrap">
+                        <div class="nano">
+                            <div class="nano-content">
+
+
+                                <ul id="mainnav-menu" class="list-group">
+
+                                    <!--Category name-->
+                                    <li class="list-header">Navigation</li>
+
+                                    <!--Menu list item-->
+                                    <li>
+                                        <a href="/">
+                                            <i class="pli-home"></i>
+                                            <span class="menu-title">Dashboard</span>
+                                            <i class="arrow"></i>
+                                        </a>
+                                    </li>
+
+                                    @if (HtmlHelperExtensions.UserHasRole(PublicEnums.UserRoleList.ROLE_ADMINISTRATOR, User))
+                                    {
+                                        <!--Menu list item-->
+                                        <li>
+                                            <a href="#">
+                                                <i class="pli-gear"></i>
+                                                <span class="menu-title">Administration</span>
+                                                <i class="arrow"></i>
+                                            </a>
+
+                                            <!--Submenu-->
+                                            <ul class="collapse">
+                                                <li><a href="/Users/Index">System Users</a></li>
+                                                <li><a href="/MasterData/EmailTemplateList">Email Templates</a></li>
+                                                <li><a href="/MasterData/SystemConfigList">System Configuration</a></li>
+
+                                            </ul>
+                                        </li>
+                                    }
+                                    @if (HtmlHelperExtensions.UserHasRole(PublicEnums.UserRoleList.ROLE_ADMINISTRATOR, User) ||
+                                      HtmlHelperExtensions.UserHasRole(PublicEnums.UserRoleList.ROLE_USER, User))
+                                    {
+                                        <li class="list-divider"></li>
+
+                                        <!--Menu list item-->
+                                        <li>
+                                            <a href="#">
+                                                <i class="pli-file"></i>
+                                                <span class="menu-title">
+                                                    File Share
+                                                </span>
+                                                <i class="arrow"></i>
+                                            </a>
+
+                                            <!--Submenu-->
+                                            <ul class="collapse">
+                                                @if (HtmlHelperExtensions.UserHasRole(PublicEnums.UserRoleList.ROLE_ADMINISTRATOR, User))
+                                                {
+                                                    <li><a href="/FileShare/FolderList">Folders</a></li>
+                                                }
+                                                <li><a href="/FileShare/FileList">Files</a></li>
+
+                                            </ul>
+                                        </li>
+                                    }
+                                </ul>
+
+                            </div>
+                        </div>
+                    </div>
+                    <!--================================-->
+                    <!--End menu-->
+
+                </div>
+            </nav>
+        </div>
+
+    </div>
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2020 - DinoShare
+        </div>
+    </footer>
+    <script src="~/js/jquery.min.js"></script>
+    <script src="~/js/bootstrap.min.js"></script>
+    <script src="~/js/nifty.min.js"></script>
+    <script src="~/lib/vue2/vue.min.js"></script>
+    <script src="~/lib/bootbox/bootbox.min.js"></script>
+    <script src="~/lib/lodash/lodash.min.js"></script>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DinoShare", "DinoShare\DinoShare.csproj", "{00B2837F-3C4D-489A-9813-850C0A5805FE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DinoShare.TemplateParser", "DinoShare.TemplateParser\DinoShare.TemplateParser.csproj", "{A134E5D5-99C6-4495-84C6-B7398032054E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{00B2837F-3C4D-489A-9813-850C0A5805FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00B2837F-3C4D-489A-9813-850C0A5805FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00B2837F-3C4D-489A-9813-850C0A5805FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00B2837F-3C4D-489A-9813-850C0A5805FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A134E5D5-99C6-4495-84C6-B7398032054E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A134E5D5-99C6-4495-84C6-B7398032054E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A134E5D5-99C6-4495-84C6-B7398032054E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A134E5D5-99C6-4495-84C6-B7398032054E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8576212A-4D0A-49ED-9B6C-47CC91E601B3}
+	EndGlobalSection
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 3
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = https://technodezi.visualstudio.com/
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = DinoShare\\DinoShare.csproj
+		SccProjectName1 = DinoShare
+		SccLocalPath1 = DinoShare
+		SccProjectUniqueName2 = DinoShare.TemplateParser\\DinoShare.TemplateParser.csproj
+		SccProjectName2 = DinoShare.TemplateParser
+		SccLocalPath2 = DinoShare.TemplateParser
+	EndGlobalSection
+EndGlobal

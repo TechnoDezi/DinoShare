@@ -1,0 +1,76 @@
+﻿@model DinoShare.ViewModels.FolderViewModelFactory.FolderDirectoryDetailsViewModel
+@{
+    ViewData["Title"] = "Folder Directory Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section Scripts
+    {
+    <script type="text/javascript">
+        $(function () {
+
+        });
+    </script>
+}
+
+<div class="panel">
+    <div class="pad-all file-manager">
+        <div class="fixed-fluid">
+            <div class="fluid file-panel">
+                <div class="bord-btm pad-ver">
+                    <ol class="breadcrumb">
+                        <li><a href="#">File Share</a></li>
+                        <li><a href="#">Folders</a></li>
+                        <li class="active">Folder Directories</li>
+                        <li class="active">Details</li>
+                    </ol>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-12 p-4">
+                            @if (!string.IsNullOrEmpty(ViewBag.Error))
+                            {
+                                <div class="alert alert-danger">
+                                    <p>
+                                        @ViewBag.Error
+                                    </p>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(ViewBag.Success))
+                            {
+                                <div class="alert alert-success">
+                                    <p>
+                                        @ViewBag.Success
+                                    </p>
+                                </div>
+                            }
+                        <form asp-controller="FileShare" asp-action="FolderDirectoryDetails" class="form-horizontal">
+                            <div class="form-group">
+                                <label class="control-label">Folder</label><br />
+                                <label class="form-control-static">@Model.Description</label>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">Directory Path</label>
+                                <input type="text" class="form-control" asp-for="FolderPath" />
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">Upload Directory</label>
+                                <input type="checkbox" asp-for="IsUploadDirectory" />
+                            </div>
+                            <input type="hidden" asp-for="FolderID" />
+                            <input type="hidden" asp-for="FolderDirectoryID" />
+                            <input type="hidden" asp-for="Description" />
+                            <hr />
+                            <div class="row">
+                                <div class="col-md-12 text-right">
+                                    <a href="/FileShare/FolderDirectoryList/@Model.FolderID" class="btn btn-link">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </div>
+                        </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

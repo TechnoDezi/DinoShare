@@ -1,0 +1,160 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DinoShare</name>
+    </assembly>
+    <members>
+        <member name="T:DinoShare.Helpers.HashProvider">
+            <summary>
+            This class generates and compares hashes using MD5, SHA1, SHA256, SHA384, 
+            and SHA512 hashing algorithms. Before computing a hash, it appends a
+            randomly generated salt to the plain text, and stores this salt appended
+            to the result. To verify another plain text value against the given hash,
+            this class will retrieve the salt value from the hash string and use it
+            when computing a new hash of the plain text. Appending a salt value to
+            the hash may not be the most efficient approach, so when using hashes in
+            a real-life application, you may choose to store them separately. You may
+            also opt to keep results as byte arrays instead of converting them into
+            base64-encoded strings.
+            </summary>
+        </member>
+        <member name="T:DinoShare.Helpers.HashProvider.HashAlgorithmList">
+            <summary>
+            Available hash algorithms
+            </summary>
+        </member>
+        <member name="M:DinoShare.Helpers.HashProvider.ComputeHash(System.String,DinoShare.Helpers.HashProvider.HashAlgorithmList,System.String)">
+            <summary>
+            Generates a hash for the given plain text value and returns a
+            base64-encoded result. Before the hash is computed, a random salt
+            is generated and appended to the plain text. This salt is stored at
+            the end of the hash value, so it can be used later for hash
+            verification.
+            </summary>
+            <param name="plainText">
+            Plaintext value to be hashed. The function does not check whether
+            this parameter is null.
+            </param>
+            <param name="hashAlgorithm">
+            Name of the hash algorithm. Allowed values are: "MD5", "SHA1",
+            "SHA256", "SHA384", and "SHA512" (if any other value is specified
+            MD5 hashing algorithm will be used). This value is case-insensitive.
+            </param>
+            <param name="saltBytes">
+            Salt bytes. This parameter can be null, in which case a random salt
+            value will be generated.
+            </param>
+            <returns>
+            Hash value formatted as a base64-encoded string.
+            </returns>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.Issuer">
+            <summary>
+            "iss" (Issuer) Claim
+            </summary>
+            <remarks>The "iss" (issuer) claim identifies the principal that issued the
+              JWT.  The processing of this claim is generally application specific.
+              The "iss" value is a case-sensitive string containing a StringOrURI
+              value.  Use of this claim is OPTIONAL.</remarks>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.Subject">
+            <summary>
+            "sub" (Subject) Claim
+            </summary>
+            <remarks> The "sub" (subject) claim identifies the principal that is the
+              subject of the JWT.  The claims in a JWT are normally statements
+              about the subject.  The subject value MUST either be scoped to be
+              locally unique in the context of the issuer or be globally unique.
+              The processing of this claim is generally application specific.  The
+              "sub" value is a case-sensitive string containing a StringOrURI
+              value.  Use of this claim is OPTIONAL.</remarks>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.Audience">
+            <summary>
+            "aud" (Audience) Claim
+            </summary>
+            <remarks>The "aud" (audience) claim identifies the recipients that the JWT is
+              intended for.  Each principal intended to process the JWT MUST
+              identify itself with a value in the audience claim.  If the principal
+              processing the claim does not identify itself with a value in the
+              "aud" claim when this claim is present, then the JWT MUST be
+              rejected.  In the general case, the "aud" value is an array of case-
+              sensitive strings, each containing a StringOrURI value.  In the
+              special case when the JWT has one audience, the "aud" value MAY be a
+              single case-sensitive string containing a StringOrURI value.  The
+              interpretation of audience values is generally application specific.
+              Use of this claim is OPTIONAL.</remarks>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.NotBefore">
+            <summary>
+            "nbf" (Not Before) Claim (default is UTC NOW)
+            </summary>
+            <remarks>The "nbf" (not before) claim identifies the time before which the JWT
+              MUST NOT be accepted for processing.  The processing of the "nbf"
+              claim requires that the current date/time MUST be after or equal to
+              the not-before date/time listed in the "nbf" claim.  Implementers MAY
+              provide for some small leeway, usually no more than a few minutes, to
+              account for clock skew.  Its value MUST be a number containing a
+              NumericDate value.  Use of this claim is OPTIONAL.</remarks>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.IssuedAt">
+            <summary>
+            "iat" (Issued At) Claim (default is UTC NOW)
+            </summary>
+            <remarks>The "iat" (issued at) claim identifies the time at which the JWT was
+              issued.  This claim can be used to determine the age of the JWT.  Its
+              value MUST be a number containing a NumericDate value.  Use of this
+              claim is OPTIONAL.</remarks>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.ValidFor">
+            <summary>
+            Set the timespan the token will be valid for (default is 5 min/300 seconds)
+            </summary>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.Expiration">
+            <summary>
+            "exp" (Expiration Time) Claim (returns IssuedAt + ValidFor)
+            </summary>
+            <remarks>The "exp" (expiration time) claim identifies the expiration time on
+              or after which the JWT MUST NOT be accepted for processing.  The
+              processing of the "exp" claim requires that the current date/time
+              MUST be before the expiration date/time listed in the "exp" claim.
+              Implementers MAY provide for some small leeway, usually no more than
+              a few minutes, to account for clock skew.  Its value MUST be a number
+              containing a NumericDate value.  Use of this claim is OPTIONAL.</remarks>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.JtiGenerator">
+            <summary>
+            "jti" (JWT ID) Claim (default ID is a GUID)
+            </summary>
+            <remarks>The "jti" (JWT ID) claim provides a unique identifier for the JWT.
+              The identifier value MUST be assigned in a manner that ensures that
+              there is a negligible probability that the same value will be
+              accidentally assigned to a different data object; if the application
+              uses multiple issuers, collisions MUST be prevented among values
+              produced by different issuers as well.  The "jti" claim can be used
+              to prevent the JWT from being replayed.  The "jti" value is a case-
+              sensitive string.  Use of this claim is OPTIONAL.</remarks>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtIssuerOptions.SigningCredentials">
+            <summary>
+            The signing key to use when generating tokens.
+            </summary>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtToken.access_token">
+            <summary>
+            Signed access token
+            </summary>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtToken.expires_in">
+            <summary>
+            Total seconds until the token expires
+            </summary>
+        </member>
+        <member name="P:DinoShare.ViewModels.JwtToken.expires_on">
+            <summary>
+            The date and time when the token expires
+            </summary>
+        </member>
+    </members>
+</doc>
