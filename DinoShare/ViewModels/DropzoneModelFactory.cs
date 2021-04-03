@@ -13,6 +13,7 @@ namespace DinoShare.ViewModels.DropzoneModelFactory
         public Int64 expectedBytes { get; set; }
         public Int64 totalChunks { get; set; }
         public Guid folderID { get; set; }
+        public Guid? parentFolderDirectoryFileID { get; set; }
     }
 
     public class DzMeta
@@ -27,6 +28,7 @@ namespace DinoShare.ViewModels.DropzoneModelFactory
         public string dzTotalChunks { get; set; }
         public string dzCurrentChunkByteOffset { get; set; }
         public Guid folderID { get; set; }
+        public Guid? parentFolderDirectoryFileID { get; set; }
 
         public DzMeta()
         {
@@ -44,6 +46,16 @@ namespace DinoShare.ViewModels.DropzoneModelFactory
             dzTotalChunks = values["dzTotalChunkCount"];
             dzCurrentChunkByteOffset = values["dzChunkByteOffset"];
             folderID = Guid.Parse(values["folderID"]);
+
+            if (values.ContainsKey("parentFolderDirectoryFileID") && !string.IsNullOrEmpty(values["parentFolderDirectoryFileID"]) && values["parentFolderDirectoryFileID"] != "null")
+            {
+                parentFolderDirectoryFileID = Guid.Parse(values["parentFolderDirectoryFileID"]);
+            }
+            else
+            {
+                parentFolderDirectoryFileID = null;
+            }
+
             Int64.TryParse(dzChunkNumber, out intChunkNumber);
         }
 
@@ -58,6 +70,16 @@ namespace DinoShare.ViewModels.DropzoneModelFactory
             dzTotalChunks = values["dzTotalChunkCount"].First();
             dzCurrentChunkByteOffset = values["dzChunkByteOffset"].First();
             folderID = Guid.Parse(values["folderID"].First());
+
+            if (values.ContainsKey("parentFolderDirectoryFileID") && !string.IsNullOrEmpty(values["parentFolderDirectoryFileID"].First()) && values["parentFolderDirectoryFileID"].First() != "null")
+            {
+                parentFolderDirectoryFileID = Guid.Parse(values["parentFolderDirectoryFileID"].First());
+            }
+            else
+            {
+                parentFolderDirectoryFileID = null;
+            }
+
             Int64.TryParse(dzChunkNumber, out intChunkNumber);
         }
     }

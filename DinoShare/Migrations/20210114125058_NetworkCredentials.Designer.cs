@@ -4,14 +4,16 @@ using DinoShare.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DinoShare.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    partial class AppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20210114125058_NetworkCredentials")]
+    partial class NetworkCredentials
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -169,12 +171,7 @@ namespace DinoShare.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("ParentFolderID")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("FolderID");
-
-                    b.HasIndex("ParentFolderID");
 
                     b.ToTable("Folders");
                 });
@@ -231,12 +228,6 @@ namespace DinoShare.Migrations
 
                     b.Property<string>("FullPath")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDirectory")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid?>("ParentFolderDirectoryFileID")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("SizeMB")
                         .HasColumnType("nvarchar(max)");
@@ -397,13 +388,6 @@ namespace DinoShare.Migrations
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("DinoShare.Models.FolderDataModelFactory.Folder", b =>
-                {
-                    b.HasOne("DinoShare.Models.FolderDataModelFactory.Folder", "ParentFolder")
-                        .WithMany()
-                        .HasForeignKey("ParentFolderID");
                 });
 
             modelBuilder.Entity("DinoShare.Models.FolderDataModelFactory.FolderDirectory", b =>

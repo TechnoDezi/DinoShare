@@ -11,7 +11,11 @@ namespace DinoShare.Models.FolderDataModelFactory
     {
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public Guid FolderID { get; set; }
+        [ForeignKey("ParentFolder")]
+        public Guid? ParentFolderID { get; set; }
         public string Description { get; set; }
+
+        public Folder ParentFolder { get; set; }
     }
 
     public class FolderDirectory
@@ -21,6 +25,9 @@ namespace DinoShare.Models.FolderDataModelFactory
         public Guid FolderID { get; set; }
         public string FolderPath { get; set; }
         public bool IsUploadDirectory { get; set; }
+        public bool RequireCredentials { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
 
         public Folder Folder { get; set; }
     }
@@ -51,6 +58,8 @@ namespace DinoShare.Models.FolderDataModelFactory
         public string FullPath { get; set; }
         public string SizeMB { get; set; }
         public DateTime CreatedDate { get; set; }
+        public bool IsDirectory { get; set; }
+        public Guid? ParentFolderDirectoryFileID { get; set; }
 
         public FolderDirectory FolderDirectory { get; set; }
     }

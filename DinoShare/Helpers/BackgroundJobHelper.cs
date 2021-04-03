@@ -15,6 +15,7 @@ using DinoShare.ViewModels.DropzoneModelFactory;
 using Microsoft.AspNetCore.Hosting;
 using System.Web;
 using System.Net.Http;
+using System.Net;
 
 namespace DinoShare.Helpers
 {
@@ -61,45 +62,92 @@ namespace DinoShare.Helpers
 
         public async Task subRescanDirectories(Guid folderDirectoryID)
         {
-            if (folderDirectoryID != null)
+            try
             {
-                var folderDir = _context.FolderDirectories.Where(x => x.FolderDirectoryID == folderDirectoryID).FirstOrDefault();
-                if (folderDir != null)
+                if (folderDirectoryID != null)
                 {
-                    var files = _context.FolderDirectoryFiles.Where(x => x.FolderDirectoryID == folderDirectoryID).ToList();
-                    foreach (var file in files)
+                    var folderDir = _context.FolderDirectories.Where(x => x.FolderDirectoryID == folderDirectoryID).FirstOrDefault();
+                    if (folderDir != null)
                     {
-                        _context.Remove(file);
-                    }
-
-                    var fileScan = Directory.GetFiles(folderDir.FolderPath);
-                    foreach (var file in fileScan)
-                    {
-                        FileInfo info = new FileInfo(file);
-
-                        var dirFile = new FolderDirectoryFile()
+                        var files = _context.FolderDirectoryFiles.Where(x => x.FolderDirectoryID == folderDirectoryID).ToList();
+                        foreach (var file in files)
                         {
-                            FileExtention = info.Extension,
-                            FileName = info.Name,
-                            FolderDirectoryFileID = Guid.NewGuid(),
-                            FolderDirectoryID = folderDir.FolderDirectoryID,
-                            FullPath = info.FullName,
-                            SizeMB = (Convert.ToDouble(info.Length) / 1024.00 / 1024.00).ToString("0.00"),
-                            CreatedDate = info.CreationTime
-                        };
-
-                        var provider = new FileExtensionContentTypeProvider();
-                        string contentType;
-                        if (!provider.TryGetContentType(info.FullName, out contentType))
-                        {
-                            contentType = "application/octet-stream";
+                            _context.Remove(file);
                         }
 
-                        dirFile.FileType = contentType;
+                        if (folderDir.RequireCredentials)
+                        {
+                            NetworkCredential networkCredential = new NetworkCredential(folderDir.Username, folderDir.Password);
+                            CredentialCache theNetcache = new CredentialCache();
+                            theNetcache.Add((new Uri(folderDir.FolderPath)), "Basic", networkCredential);
+                        }
 
-                        _context.Add(dirFile);
+                        await RescanDirectoriesLoadFiles(null, folderDir.FolderPath, folderDir);
                     }
+
+                    await _context.SaveChangesAsync();
                 }
+            }
+            catch (Exception ex)
+            {
+                HelperFunctions.Log(_context, PublicEnums.LogLevel.LEVEL_EXCEPTION, "Helpers.BackgroundJobHelper.subRescanDirectories", ex.Message, null, ex);
+            }
+        }
+
+        public async Task RescanDirectoriesLoadFiles(Guid? parentFolderDirectoryFileID, string path, FolderDirectory folderDir)
+        {
+            var physicalDirectories = Directory.GetDirectories(path);
+            foreach (var directory in physicalDirectories)
+            {
+                DirectoryInfo info = new DirectoryInfo(directory);
+
+                var dirFile = new FolderDirectoryFile()
+                {
+                    FileExtention = "",
+                    FileName = info.Name,
+                    FolderDirectoryFileID = Guid.NewGuid(),
+                    FolderDirectoryID = folderDir.FolderDirectoryID,
+                    FullPath = info.FullName,
+                    CreatedDate = info.CreationTime,
+                    IsDirectory = true,
+                    ParentFolderDirectoryFileID = parentFolderDirectoryFileID
+                };
+
+                _context.Add(dirFile);
+
+                await _context.SaveChangesAsync();
+
+                await RescanDirectoriesLoadFiles(dirFile.FolderDirectoryFileID, info.FullName, folderDir);
+            }
+
+            var fileScan = Directory.GetFiles(path, "", SearchOption.TopDirectoryOnly);
+            foreach (var file in fileScan)
+            {
+                FileInfo info = new FileInfo(file);
+
+                var dirFile = new FolderDirectoryFile()
+                {
+                    FileExtention = info.Extension,
+                    FileName = info.Name,
+                    FolderDirectoryFileID = Guid.NewGuid(),
+                    FolderDirectoryID = folderDir.FolderDirectoryID,
+                    FullPath = info.FullName,
+                    SizeMB = (Convert.ToDouble(info.Length) / 1024.00 / 1024.00).ToString("0.00"),
+                    CreatedDate = info.CreationTime,
+                    IsDirectory = false,
+                    ParentFolderDirectoryFileID = parentFolderDirectoryFileID
+                };
+
+                var provider = new FileExtensionContentTypeProvider();
+                string contentType;
+                if (!provider.TryGetContentType(info.FullName, out contentType))
+                {
+                    contentType = "application/octet-stream";
+                }
+
+                dirFile.FileType = contentType;
+
+                _context.Add(dirFile);
 
                 await _context.SaveChangesAsync();
             }
@@ -160,7 +208,21 @@ namespace DinoShare.Helpers
                             var uploadDirectory = _context.FolderDirectories.FirstOrDefault(x => x.FolderID == model.folderID && x.IsUploadDirectory == true);
                             if (uploadDirectory != null)
                             {
+                                if (uploadDirectory.RequireCredentials)
+                                {
+                                    NetworkCredential networkCredential = new NetworkCredential(uploadDirectory.Username, uploadDirectory.Password);
+                                    CredentialCache theNetcache = new CredentialCache();
+                                    theNetcache.Add((new Uri(uploadDirectory.FolderPath)), "Basic", networkCredential);
+                                }
+
                                 var finaldest = Path.Combine(uploadDirectory.FolderPath, HttpUtility.UrlDecode(model.fileName));
+
+                                if (model.parentFolderDirectoryFileID != null && _context.FolderDirectoryFiles.Any(x => x.FolderDirectoryFileID == model.parentFolderDirectoryFileID))
+                                {
+                                    var folderDirectoryFiles = _context.FolderDirectoryFiles.First(x => x.FolderDirectoryFileID == model.parentFolderDirectoryFileID);
+
+                                    finaldest = Path.Combine(folderDirectoryFiles.FullPath, HttpUtility.UrlDecode(model.fileName));
+                                }
 
                                 if (!Directory.Exists(uploadDirectory.FolderPath))
                                 {

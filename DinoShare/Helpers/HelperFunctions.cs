@@ -63,7 +63,7 @@ namespace DinoShare.Helpers
         {
             try
             {
-                Guid userID = Guid.Empty;
+                Guid? userID = null;
 
                 if (user != null && user.Identity != null && user.Identities.First().IsAuthenticated == true)
                 {

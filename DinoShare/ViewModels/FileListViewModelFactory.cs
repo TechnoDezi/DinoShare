@@ -29,17 +29,23 @@ namespace DinoShare.ViewModels.FileListViewModelFactory
             };
             userHelper.Populate();
 
-            FolderList = (from f in _context.Folders
-                              join fu in _context.FolderUsers on f.FolderID equals fu.FolderID
-                              where fu.UserID == userHelper.loggedInUserID
-                              orderby f.Description
-                              select new FileListViewModelData
-                              {
-                                  Description = f.Description,
-                                  AllowDelete = fu.AllowDelete,
-                                  AllowEdit = fu.AllowEdit,
-                                  FolderID = f.FolderID
-                              }).ToList();
+            FolderList = LoadFolderList(userHelper, null);
+        }
+
+        private List<FileListViewModelData> LoadFolderList(UserHelperFunctions userHelper, Guid? parentFolderID = null)
+        {
+            return (from f in _context.Folders
+                    join fu in _context.FolderUsers on f.FolderID equals fu.FolderID
+                    where fu.UserID == userHelper.loggedInUserID && f.ParentFolderID == parentFolderID
+                    orderby f.Description
+                    select new { f, fu }).ToList().Select(x => new FileListViewModelData
+                    {
+                        Description = x.f.Description,
+                        AllowDelete = x.fu.AllowDelete,
+                        AllowEdit = x.fu.AllowEdit,
+                        FolderID = x.f.FolderID,
+                        FolderList = LoadFolderList(userHelper, x.f.FolderID)
+                    }).ToList();
         }
     }
 
@@ -49,6 +55,9 @@ namespace DinoShare.ViewModels.FileListViewModelFactory
         public string Description { get; set; }
         public bool AllowEdit { get; set; }
         public bool AllowDelete { get; set; }
+        public bool IsActive { get; set; }
+
+        public List<FileListViewModelData> FolderList { get; set; }
     }
 
     public class FolderFileListViewModel
@@ -60,6 +69,7 @@ namespace DinoShare.ViewModels.FileListViewModelFactory
 
         public string SearchValue { get; set; }
         public Guid FolderID { get; set; }
+        public Guid? ParentFolderDirectoryFileID { get; set; }
 
         public PaginationViewModel Pagination { get; set; }
 
@@ -86,15 +96,17 @@ namespace DinoShare.ViewModels.FileListViewModelFactory
                         join fu in _context.FolderUsers on u.FolderID equals fu.FolderID
                         join fd in _context.FolderDirectoryFiles on u.FolderDirectoryID equals fd.FolderDirectoryID
                         where u.FolderID == FolderID && fu.UserID == userHelper.loggedInUserID
+                        && fd.ParentFolderDirectoryFileID == ParentFolderDirectoryFileID
                         && (!string.IsNullOrEmpty(SearchValue) && (fd.FileName.ToLower().Contains(SearchValue)) || string.IsNullOrEmpty(SearchValue))
-                        orderby fd.CreatedDate descending
+                        orderby fd.IsDirectory descending, fd.FileName
                         select new FolderFileListViewModelData
                         {
                             FileName = fd.FileName,
                             CreatedDate = fd.CreatedDate.ToString("yyyy/MM/dd HH:mm"),
                             FolderDirectoryFileID = fd.FolderDirectoryFileID,
                             SizeMB = fd.SizeMB,
-                            IsUploadDirectory = u.IsUploadDirectory
+                            IsUploadDirectory = u.IsUploadDirectory,
+                            IsDirectory = fd.IsDirectory
                         });
 
             Pagination.TotalRecords = list.Count();
@@ -144,5 +156,6 @@ namespace DinoShare.ViewModels.FileListViewModelFactory
         public string SizeMB { get; set; }
         public string CreatedDate { get; set; }
         public bool IsUploadDirectory { get; set; }
+        public bool IsDirectory { get; set; }
     }
 }

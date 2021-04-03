@@ -44,12 +44,14 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
                 Pagination.Top = 10;
             }
 
-            var list = (from u in _context.Folders
+            var list = (from u in _context.Folders.Include(x => x.ParentFolder)
                         where (!string.IsNullOrEmpty(SearchValue) && (u.Description.ToLower().Contains(SearchValue)) || string.IsNullOrEmpty(SearchValue))
+                        orderby (u.ParentFolder.Description != null) ? u.ParentFolder.Description : "", u.Description
                         select new FolderListViewModelData
                         {
                             Description = u.Description,
-                            FolderID = u.FolderID
+                            FolderID = u.FolderID,
+                            ParentDescription = (u.ParentFolder != null) ? u.ParentFolder.Description : ""
                         });
 
             Pagination.TotalRecords = list.Count();
@@ -65,6 +67,7 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
     {
         public Guid FolderID { get; set; }
         public string Description { get; set; }
+        public string ParentDescription { get; set; }
     }
 
     public class FolderDetailsViewModel
@@ -76,7 +79,10 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
         internal string errorMessage;
 
         public Guid FolderID { get; set; }
+        public string SelectedParentFolderID { get; set; }
         public string Description { get; set; }
+
+        public List<SelectListItem> ParentFolderList { get; set; }
 
         internal async Task<bool> Remove()
         {
@@ -126,6 +132,7 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
             }
 
             folder.Description = Description;
+            folder.ParentFolderID = (SelectedParentFolderID != Guid.Empty.ToString() && !string.IsNullOrEmpty(SelectedParentFolderID)) ? Guid.Parse(SelectedParentFolderID) : (Guid?)null;
 
             if (isNew)
             {
@@ -156,7 +163,20 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
 
         internal async Task PopulateLists()
         {
-            
+            ParentFolderList = (from f in _context.Folders
+                                where f.FolderID != FolderID
+                                orderby f.Description
+                                select new SelectListItem
+                                {
+                                    Text = f.Description,
+                                    Value = f.FolderID.ToString()
+                                }).ToList();
+
+            ParentFolderList.Insert(0, new SelectListItem()
+            {
+                Text = "None",
+                Value = Guid.Empty.ToString()
+            });
         }
 
         internal async Task PopulateDetails()
@@ -168,11 +188,12 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
                 if (folder != null)
                 {
                     Description = folder.Description;
+                    SelectedParentFolderID = folder.ParentFolderID.ToString();
                 }
             }
             else
             {
-                
+                SelectedParentFolderID = Guid.Empty.ToString();
             }
         }
     }
@@ -430,6 +451,9 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
         public string Description { get; set; }
         public string FolderPath { get; set; }
         public bool IsUploadDirectory { get; set; }
+        public bool RequireCredentials { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
 
         internal async Task<bool> Remove()
         {
@@ -468,6 +492,9 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
                     Description = folderDir.Folder.Description;
                     FolderPath = folderDir.FolderPath;
                     IsUploadDirectory = folderDir.IsUploadDirectory;
+                    RequireCredentials = folderDir.RequireCredentials;
+                    Username = folderDir.Username;
+                    Password = folderDir.Password;
                 }
             }
             else
@@ -517,6 +544,9 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
 
             folderDir.FolderPath = FolderPath;
             folderDir.IsUploadDirectory = IsUploadDirectory;
+            folderDir.RequireCredentials = RequireCredentials;
+            folderDir.Username = Username;
+            folderDir.Password = Password;
 
             if (isNew)
             {

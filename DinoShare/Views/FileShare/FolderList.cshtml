@@ -22,6 +22,7 @@
                 model: pageModel,
                 searchValue: pageModel.searchValue,
                 headers: [
+                    { text: 'Parent Folder', code: 'ParentDescription', disableSorting: false },
                         { text: 'Folder', code: 'Description', disableSorting: false },
                         { text: 'Actions', code: '', disableSorting: true },
                     ]
@@ -145,6 +146,7 @@
                         <cool-table table-class="table table-striped" :items="model.itemList" :pagination="model.pagination" :headers="headers" @@pagechange="onPageChange">
                             <template v-slot:body="slotProps">
                                 <tr v-for="item in slotProps.rowItems" style="cursor:pointer">
+                                    <td>{{item.parentDescription}}</td>
                                     <td>{{item.description}}</td>
                                     <td>
                                         <a :href="'/FileShare/FolderDetails/' + item.folderID" title="Edit" class="btn btn-success btn-icon">

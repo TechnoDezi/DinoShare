@@ -43,6 +43,10 @@
                             }
                         <form asp-controller="FileShare" asp-action="FolderDetails" class="form-horizontal">
                             <div class="form-group">
+                                <label class="control-label">Parent Folder</label>
+                                <select class="form-control" asp-for="SelectedParentFolderID" asp-items="Model.ParentFolderList"></select>
+                            </div>
+                            <div class="form-group">
                                 <label class="control-label">Description</label>
                                 <input type="text" class="form-control" asp-for="Description">
                             </div>

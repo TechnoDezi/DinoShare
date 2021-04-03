@@ -1,1 +1,44 @@
-﻿
+﻿/* Remove default bullets */
+ul,.ds-treeview {
+    list-style-type: none;
+}
+
+/* Remove margins and padding from the parent ul */
+.ds-treeview {
+    margin: 15px;
+    padding: 0;
+}
+
+    .ds-treeview li {
+        padding-top:5px;
+        padding-bottom:5px;
+    }
+
+    /* Style the caret/arrow */
+    .ds-treeview .ds-caret {
+        cursor: pointer;
+        user-select: none; /* Prevent text selection */
+    }
+
+    /* Create the caret/arrow with a unicode, and style it */
+        .ds-treeview .ds-caret::before {
+            content: "\25B6";
+            color: black;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+/* Rotate the caret/arrow icon when clicked on (using JavaScript) */
+    .ds-treeview .ds-caret-down::before {
+        transform: rotate(90deg);
+    }
+
+/* Hide the nested list */
+    .ds-treeview .ds-nested {
+        display: none;
+    }
+
+/* Show the nested list when the user clicks on the caret/arrow (with JavaScript) */
+    .ds-treeview .ds-active {
+        display: block;
+    }

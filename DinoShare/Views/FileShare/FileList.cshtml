@@ -8,6 +8,8 @@
     <script src="~/js/vue.cool-table.js"></script>
     <script src="~/plugins/dropzone/min/dropzone.min.js"></script>
     <link href="~/plugins/dropzone/dropzone.css" rel="stylesheet" />
+    <script src="~/js/vue.foldertree.js"></script>
+
     <script type="text/javascript">
         var pageModel = @Json.Serialize(Model);
         var timerId = null;
@@ -23,6 +25,7 @@
         });
 
         Vue.component(VueCoolTable.name, VueCoolTable);
+        Vue.component(VueFolderTree.name, VueFolderTree);
 
         var searchApp = new Vue({
             el: '#vue-app',
@@ -32,7 +35,9 @@
                 model: pageModel,
                 searchValue: "",
                 activeFolder: {},
+                parentFolderDirectoryFileID: null,
                 files: null,
+                physicalDirectoryLevels: [],
                 headers: [
                     { text: 'File Name', code: 'FileName', disableSorting: false },
                     { text: 'Created Date', code: 'CreatedDate', disableSorting: false },
@@ -52,7 +57,12 @@
                 },
                 SetActiveFolder: function (folder) {
                     this.activeFolder = folder;
-                    this.LoadFiles();
+
+                    this.physicalDirectoryLevels = [];
+                    this.parentFolderDirectoryFileID = null;
+
+                    this.files.pagination.skip = 0;
+                    this.LoadFiles(this.files.pagination);
                 },
                 LoadFiles: function (pagination) {
                     var self = this;
@@ -62,7 +72,8 @@
                         Pagination: (pagination === undefined || pagination === null) ? {
                             top: 10,
                         } : pagination,
-                        FolderID: this.activeFolder.folderID
+                        FolderID: this.activeFolder.folderID,
+                        ParentFolderDirectoryFileID: this.parentFolderDirectoryFileID
                     };
 
                     self.$data.model.searchValue = self.$data.searchValue;
@@ -102,6 +113,40 @@
                         1500
                     );
                 },
+                LoadFileFolder: function (item) {
+                    this.parentFolderDirectoryFileID = item.folderDirectoryFileID;
+                    this.physicalDirectoryLevels.push({ fileName: item.fileName, folderDirectoryFileID: item.folderDirectoryFileID });
+
+                    this.files.pagination.skip = 0;
+                    this.LoadFiles(this.files.pagination);
+                },
+                LoadDirectoryUp: function () {
+                    if (this.physicalDirectoryLevels.length > 0) {
+                        this.physicalDirectoryLevels.pop();
+
+                        if (this.physicalDirectoryLevels[this.physicalDirectoryLevels.length - 1] != undefined && this.physicalDirectoryLevels[this.physicalDirectoryLevels.length - 1] != null) {
+
+                            this.parentFolderDirectoryFileID = this.physicalDirectoryLevels[this.physicalDirectoryLevels.length - 1].folderDirectoryFileID;
+
+                            this.files.pagination.skip = 0;
+                            this.LoadFiles(this.files.pagination);
+                        }
+                        else {
+                            this.physicalDirectoryLevels = [];
+                            this.parentFolderDirectoryFileID = null;
+
+                            this.files.pagination.skip = 0;
+                            this.LoadFiles(this.files.pagination);
+                        }
+                    }
+                    else {
+                        this.physicalDirectoryLevels = [];
+                        this.parentFolderDirectoryFileID = null;
+
+                        this.files.pagination.skip = 0;
+                        this.LoadFiles(this.files.pagination);
+                    }
+                }
             },
             watch: {
                 searchValue: function (val) {
@@ -130,10 +175,11 @@
                             dzChunkSize: this.options.chunkSize,
                             dzFilename: chunk.file.name,
                             folderID: searchApp.activeFolder.folderID,
+                            parentFolderDirectoryFileID: searchApp.parentFolderDirectoryFileID
                         };
                     }
                 },
-                parallelUploads: 1,  // since we're using a global 'currentFile', we could have issues if parallelUploads > 1, so we'll make it = 1
+                parallelUploads: 4,  // since we're using a global 'currentFile', we could have issues if parallelUploads > 1, so we'll make it = 1
                 maxFiles: 1,    //we only want to upload one video
                 maxFilesize: 100000,   // max individual file size 1024 MB
                 chunking: true,      // enable chunking
@@ -141,7 +187,7 @@
                 parallelChunkUploads: false, // allows chunks to be uploaded in parallel (this is independent of the parallelUploads option)
                 chunkSize: 20000000,  // chunk size 1,000,000 bytes (~20MB)
                 retryChunks: true,   // retry chunks on failure
-                retryChunksLimit: 6, // retry maximum of 3 times (default is 3)
+                retryChunksLimit: 3, // retry maximum of 3 times (default is 3)
                 acceptedFiles: null, //".mp4,.mpg,.wmv,.avi,.m4a,.m4v,.mkv,.mov",
                 chunksUploaded: function (file, done) {
                     // All chunks have been uploaded. Perform any other actions
@@ -157,7 +203,8 @@
                             fileName: encodeURIComponent(currentFile.name),
                             expectedBytes: currentFile.size,
                             totalChunks: currentFile.upload.totalChunkCount,
-                            folderID: searchApp.activeFolder.folderID
+                            folderID: searchApp.activeFolder.folderID,
+                            parentFolderDirectoryFileID: searchApp.parentFolderDirectoryFileID
                         }),
                         url: "/api/FileShare/CommitChunks",
                         success: function (data) {
@@ -189,7 +236,8 @@
                                 fileName: encodeURIComponent(file.name),
                                 expectedBytes: file.size,
                                 totalChunks: file.upload.totalChunkCount,
-                                folderID: searchApp.activeFolder.folderID
+                                folderID: searchApp.activeFolder.folderID,
+                                parentFolderDirectoryFileID: searchApp.parentFolderDirectoryFileID
                             }),
                             url: "/api/FileShare/DeleteCanceledChunks",
                             success: function (data) {
@@ -215,7 +263,7 @@
 <div class="panel" id="vue-app">
     <div class="pad-all file-manager">
         <div class="fixed-fluid">
-            <div class="fixed-sm-200 pull-sm-left file-sidebar">
+            <div class="fixed-sm-350 pull-sm-left file-sidebar">
                 <div class="bord-btm pad-btm" v-if="activeFolder != null && activeFolder.allowEdit == true">
                     <button class="btn btn-block btn-lg btn-info v-middle" data-toggle="modal" data-target="#uploadModal">Upload Files</button>
                     <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel">
@@ -226,6 +274,16 @@
                                     <h4 class="modal-title" id="myModalLabel">Upload file to {{activeFolder.description}}</h4>
                                 </div>
                                 <div class="modal-body">
+                                    <div>
+                                        <strong>Upload into</strong><br />
+                                        <ol class="breadcrumb">
+                                            <li>Root</li>
+                                            <template v-for="(item, index) in physicalDirectoryLevels">
+                                                <li v-if="index != physicalDirectoryLevels.length - 1"><a href="#">{{item.fileName}}</a></li>
+                                                <li v-if="index == physicalDirectoryLevels.length - 1" class="active">{{item.fileName}}</li>
+                                            </template>
+                                        </ol>
+                                    </div>
                                     <div class="dropzone dz-clickable" id="dropzone">
                                         <div class="dz-default dz-message">
                                             <div class="dz-icon">
@@ -250,15 +308,10 @@
                     </div>
                 </div>
                 <p class="pad-hor mar-top text-main text-bold text-sm text-uppercase">Folders</p>
-                <div class="list-group bg-trans pad-btm bord-btm">
-                    <template v-for="folder in model.folderList">
-                        <a v-if="folder.folderID == activeFolder.folderID" href="#" class="list-group-item text-bold" v-on:click="SetActiveFolder(folder)">
-                            <span class="text-main"><i class="pli-folder-with-document icon-lg icon-fw"></i> {{folder.description}}</span>
-                        </a>
-                        <a v-if="folder.folderID != activeFolder.folderID" href="#" class="list-group-item" v-on:click="SetActiveFolder(folder)">
-                            <i class="pli-folder icon-lg icon-fw"></i> {{folder.description}}
-                        </a>
-                    </template>
+                <div class="pad-btm bord-btm">
+                    <div style="max-height:500px; overflow-y:auto; overflow-x:scroll">
+                        <foldertree cssclass="ds-treeview" :folderlist="model.folderList" v-on:setactivefolder="SetActiveFolder"></foldertree>
+                    </div>
                 </div>
             </div>
             <div class="fluid file-panel">
@@ -287,7 +340,15 @@
                 <div class="bord-btm pad-ver">
                     <ol class="breadcrumb">
                         <li><a href="#">File Share</a></li>
-                        <li class="active">File Manager</li>
+                        <li><a href="#">File Manager</a></li>
+                        <li class="active">{{activeFolder.description}}</li>
+                    </ol>
+                    <ol class="breadcrumb">
+                        <li>Root</li>
+                        <template v-for="(item, index) in physicalDirectoryLevels">
+                            <li v-if="index != physicalDirectoryLevels.length - 1"><a href="#">{{item.fileName}}</a></li>
+                            <li v-if="index == physicalDirectoryLevels.length - 1" class="active">{{item.fileName}}</li>
+                        </template>
                     </ol>
                 </div>
                 <div class="file-toolbar bord-btm">
@@ -317,15 +378,28 @@
                 <div class="file-list" v-if="files != null">
                     <cool-table table-class="table table-striped" :items="files.itemList" :pagination="files.pagination" :headers="headers" @@pagechange="onPageChange">
                         <template v-slot:body="slotProps">
-                            <tr v-for="item in slotProps.rowItems" style="cursor:pointer">
-                                <td>{{item.fileName}}</td>
-                                <td>{{item.createdDate}}</td>
-                                <td>{{item.sizeMB}}</td>
+                            <tr v-if="parentFolderDirectoryFileID != null">
+                                <td><i class="fa fa-level-up-alt"></i> ...</td>
+                                <td></td>
+                                <td></td>
                                 <td>
-                                    <a :href="'/FileShare/DownloadFile/' + item.folderDirectoryFileID" target="_blank" title="Download file" class="btn btn-success btn-icon">
+                                    <button v-on:click="LoadDirectoryUp()" type="button" title="Previous Folder" class="btn btn-info btn-icon">
+                                        <i class="psi-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-for="item in slotProps.rowItems" style="cursor:pointer">
+                                <td><i class="fa fa-folder" v-if="item.isDirectory == true"></i> {{item.fileName}}</td>
+                                <td>{{item.createdDate}}</td>
+                                <td><span v-if="item.isDirectory == false">{{item.sizeMB}}</span></td>
+                                <td>
+                                    <button v-if="item.isDirectory == true" v-on:click="LoadFileFolder(item)" type="button" title="Open Folder" class="btn btn-info btn-icon">
+                                        <i class="psi-eye"></i>
+                                    </button>
+                                    <a :href="'/FileShare/DownloadFile/' + item.folderDirectoryFileID" target="_blank" title="Download file" v-if="item.isDirectory == false" class="btn btn-success btn-icon">
                                         <i class="psi-download"></i>
                                     </a>
-                                    <button v-if="item.isUploadDirectory == true && activeFolder.allowDelete == true" type="button" title="Delete File" class="btn btn-danger btn-icon" data-toggle="modal" :data-target="'#remModal_' + item.folderDirectoryFileID">
+                                    <button v-if="item.isUploadDirectory == true && activeFolder.allowDelete == true && item.isDirectory == false" type="button" title="Delete File" class="btn btn-danger btn-icon" data-toggle="modal" :data-target="'#remModal_' + item.folderDirectoryFileID">
                                         <i class="psi-trash"></i>
                                     </button>
                                     <div class="modal fade" :id="'remModal_' + item.folderDirectoryFileID" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
