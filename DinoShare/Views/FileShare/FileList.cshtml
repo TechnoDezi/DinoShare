@@ -38,6 +38,7 @@
                 parentFolderDirectoryFileID: null,
                 files: null,
                 physicalDirectoryLevels: [],
+                newFolderName: "",
                 headers: [
                     { text: 'File Name', code: 'FileName', disableSorting: false },
                     { text: 'Created Date', code: 'CreatedDate', disableSorting: false },
@@ -145,6 +146,36 @@
 
                         this.files.pagination.skip = 0;
                         this.LoadFiles(this.files.pagination);
+                    }
+                },
+                AddFolder: function () {
+                    var self = this;
+
+                    var postModel = {
+                        newFolderName: self.newFolderName,
+                        FolderID: self.activeFolder.folderID,
+                        ParentFolderDirectoryFileID: self.parentFolderDirectoryFileID
+                    };
+
+                    if (self.newFolderName != null && self.newFolderName != '') {
+                        $.post("/FileShare/AddNewFolder", postModel, function (response) {
+                            if (response.result == true) {
+                                self.LoadFiles(self.$data.files.pagination);
+                                self.$data.messages = [];
+                                self.$data.errors = [];
+                                self.$data.messages.push({ description: response.message });
+                            }
+                            else {
+                                self.$data.messages = [];
+                                self.$data.errors = [];
+                                self.$data.errors.push({ description: response.message });
+                            }
+                        });
+                    }
+                    else {
+                        self.$data.messages = [];
+                        self.$data.errors = [];
+                        self.$data.errors.push({ description: "Please enter a valid file name" });
                     }
                 }
             },
@@ -355,7 +386,38 @@
                     <div class="btn-file-toolbar">
                         <div class="row">
                             <div class="col-xs-6">
-                                <a class="btn btn-icon add-tooltip" href="#" data-original-title="Refresh" v-on:click="LoadFiles()" data-toggle="tooltip"><i class="icon-2x pli-reload-3"></i></a>
+                                <button type="button" class="btn btn-icon add-tooltip" data-original-title="Refresh" v-on:click="LoadFiles()" data-toggle="tooltip"><i class="icon-2x pli-reload-3"></i></button>
+                                <button v-if="activeFolder != null && activeFolder.allowEdit == true && parentFolderDirectoryFileID != null" type="button" class="btn btn-icon add-tooltip" data-toggle="modal" data-target="#newFolderModal" data-original-title="Add Folder" data-toggle="tooltip"><i class="fa fa-folder"></i></button>
+                                <div class="modal fade" id="newFolderModal" tabindex="-1" role="dialog" aria-labelledby="newFolderModalLabel">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                                <h4 class="modal-title" id="newFolderModalLabel">Add folder to {{activeFolder.description}}</h4>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div>
+                                                    <strong>Add folder into</strong><br />
+                                                    <ol class="breadcrumb">
+                                                        <li>Root</li>
+                                                        <template v-for="(item, index) in physicalDirectoryLevels">
+                                                            <li v-if="index != physicalDirectoryLevels.length - 1"><a href="#">{{item.fileName}}</a></li>
+                                                            <li v-if="index == physicalDirectoryLevels.length - 1" class="active">{{item.fileName}}</li>
+                                                        </template>
+                                                    </ol>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="control-label">Folder Name</label><br />
+                                                    <input type="text" class="form-control" v-model="newFolderName">
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="AddFolder()">Add Folder</button>
+                                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="xs-6">
                                 <div class="input-group">
@@ -378,15 +440,11 @@
                 <div class="file-list" v-if="files != null">
                     <cool-table table-class="table table-striped" :items="files.itemList" :pagination="files.pagination" :headers="headers" @@pagechange="onPageChange">
                         <template v-slot:body="slotProps">
-                            <tr v-if="parentFolderDirectoryFileID != null">
-                                <td><i class="fa fa-level-up-alt"></i> ...</td>
+                            <tr v-if="parentFolderDirectoryFileID != null" v-on:click="LoadDirectoryUp()" style="cursor:pointer">
+                                <td><i class="fa fa-chevron-up"></i> ...</td>
                                 <td></td>
                                 <td></td>
-                                <td>
-                                    <button v-on:click="LoadDirectoryUp()" type="button" title="Previous Folder" class="btn btn-info btn-icon">
-                                        <i class="psi-eye"></i>
-                                    </button>
-                                </td>
+                                <td></td>
                             </tr>
                             <tr v-for="item in slotProps.rowItems" style="cursor:pointer">
                                 <td><i class="fa fa-folder" v-if="item.isDirectory == true"></i> {{item.fileName}}</td>
@@ -396,10 +454,10 @@
                                     <button v-if="item.isDirectory == true" v-on:click="LoadFileFolder(item)" type="button" title="Open Folder" class="btn btn-info btn-icon">
                                         <i class="psi-eye"></i>
                                     </button>
-                                    <a :href="'/FileShare/DownloadFile/' + item.folderDirectoryFileID" target="_blank" title="Download file" v-if="item.isDirectory == false" class="btn btn-success btn-icon">
+                                    <a :href="'/FileShare/DownloadFile/' + item.folderDirectoryFileID" target="_blank" title="Download file / folder" class="btn btn-success btn-icon">
                                         <i class="psi-download"></i>
                                     </a>
-                                    <button v-if="item.isUploadDirectory == true && activeFolder.allowDelete == true && item.isDirectory == false" type="button" title="Delete File" class="btn btn-danger btn-icon" data-toggle="modal" :data-target="'#remModal_' + item.folderDirectoryFileID">
+                                    <button v-if="item.isUploadDirectory == true && activeFolder.allowDelete == true" type="button" title="Delete File / fOLDER" class="btn btn-danger btn-icon" data-toggle="modal" :data-target="'#remModal_' + item.folderDirectoryFileID">
                                         <i class="psi-trash"></i>
                                     </button>
                                     <div class="modal fade" :id="'remModal_' + item.folderDirectoryFileID" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -407,11 +465,11 @@
                                             <div class="modal-content">
                                                 <div class="modal-header">
                                                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                                    <h4 class="modal-title" id="myModalLabel">Remove file</h4>
+                                                    <h4 class="modal-title" id="myModalLabel">Remove file / folder</h4>
                                                 </div>
                                                 <div class="modal-body">
                                                     <p>
-                                                        Are you sure you wish to remove the file {{item.fileName}}
+                                                        Are you sure you wish to remove the file / folder {{item.fileName}}
                                                     </p>
                                                 </div>
                                                 <div class="modal-footer">

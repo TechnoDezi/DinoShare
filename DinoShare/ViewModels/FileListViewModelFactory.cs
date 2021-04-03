@@ -1,8 +1,11 @@
 ﻿using DinoShare.Helpers;
 using DinoShare.Helpers.EmailServiceFactory;
 using DinoShare.Models;
+using DinoShare.Models.FolderDataModelFactory;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -137,14 +140,65 @@ namespace DinoShare.ViewModels.FileListViewModelFactory
 
             if(file != null)
             {
-                if (System.IO.File.Exists(file.FullPath))
+                if (file.IsDirectory == false)
                 {
-                    System.IO.File.Delete(file.FullPath);
+                    if (System.IO.File.Exists(file.FullPath))
+                    {
+                        System.IO.File.Delete(file.FullPath);
+                    }
+                }
+                else
+                {
+                    if (System.IO.Directory.Exists(file.FullPath))
+                    {
+                        System.IO.Directory.Delete(file.FullPath, true);
+                    }
                 }
 
                 _context.Remove(file);
 
                 await _context.SaveChangesAsync();
+            }
+        }
+
+        internal async Task AddNewFolder(string newFolderName, Guid folderID, Guid? parentFolderDirectoryFileID)
+        {
+            UserHelperFunctions userHelper = new UserHelperFunctions()
+            {
+                _context = _context,
+                _emailService = _emailService,
+                _securityOptions = _securityOptions,
+                _user = _user
+            };
+            userHelper.Populate();
+
+            var folder = _context.FolderUsers.FirstOrDefault(x => x.FolderID == folderID);
+            if(folder != null)
+            {
+                var parentFolder = _context.FolderDirectoryFiles.Include(x => x.FolderDirectory).FirstOrDefault(x => x.FolderDirectoryFileID == parentFolderDirectoryFileID);
+                if (parentFolder != null)
+                {
+                    var dirFile = new FolderDirectoryFile()
+                    {
+                        FileExtention = "",
+                        FileName = newFolderName,
+                        FolderDirectoryFileID = Guid.NewGuid(),
+                        FolderDirectoryID = parentFolder.FolderDirectoryID,
+                        FullPath = Path.Combine(parentFolder.FullPath, newFolderName),
+                        CreatedDate = DateTime.UtcNow,
+                        IsDirectory = true,
+                        ParentFolderDirectoryFileID = parentFolderDirectoryFileID
+                    };
+
+                    _context.Add(dirFile);
+
+                    await _context.SaveChangesAsync();
+
+                    if(Directory.Exists(Path.Combine(parentFolder.FullPath, newFolderName)) == false)
+                    {
+                        Directory.CreateDirectory(Path.Combine(parentFolder.FullPath, newFolderName));
+                    }
+                }
             }
         }
     }

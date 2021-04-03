@@ -181,6 +181,8 @@ namespace DinoShare
             recurringJobs.AddOrUpdate("CleanApplicationLog", Job.FromExpression<BackgroundJobHelper>(x => x.CleanApplicationLog()), "0 8 * * SAT");
 
             recurringJobs.AddOrUpdate("RescanDirectories", Job.FromExpression<BackgroundJobHelper>(x => x.RescanDirectories()), "0 23 * * *");
+
+            recurringJobs.AddOrUpdate("DeleteOldDirectoriesAndFiles", Job.FromExpression<BackgroundJobHelper>(x => x.DeleteOldDirectoriesAndFiles()), "0 23 * * *");
         }
     }
 }

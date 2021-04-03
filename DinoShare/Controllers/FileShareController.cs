@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using DinoShare.Helpers;
@@ -11,6 +12,7 @@ using DinoShare.ViewModels.FileListViewModelFactory;
 using DinoShare.ViewModels.FolderViewModelFactory;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -21,12 +23,14 @@ namespace DinoShare.Controllers
         private readonly AppDBContext _context;
         private readonly SecurityOptions _securityOptions;
         private readonly IEmailService _emailService;
+        private readonly IWebHostEnvironment _env;
 
-        public FileShareController(AppDBContext context, IOptions<SecurityOptions> securityOptions, IEmailService emailService)
+        public FileShareController(AppDBContext context, IOptions<SecurityOptions> securityOptions, IEmailService emailService, IWebHostEnvironment env)
         {
             _context = context;
             _securityOptions = securityOptions.Value;
             _emailService = emailService;
+            _env = env;
         }
 
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme, Roles = PublicEnums.UserRoleList.ROLE_ADMINISTRATOR)]
@@ -558,11 +562,26 @@ namespace DinoShare.Controllers
 
             if (file != null)
             {
-                var stream = System.IO.File.OpenRead(file.FullPath);
-                return new FileStreamResult(stream, file.FileType)
+                if (file.IsDirectory == false)
                 {
-                    FileDownloadName = file.FileName
-                };
+                    var stream = System.IO.File.OpenRead(file.FullPath);
+                    return new FileStreamResult(stream, file.FileType)
+                    {
+                        FileDownloadName = file.FileName
+                    };
+                }
+                else
+                {
+                    var zipFileBasePath = Path.Combine(_env.ContentRootPath, "App_Data", file.FileName + "_" + Guid.NewGuid().ToString() + ".zip");
+
+                    ZipFile.CreateFromDirectory(file.FullPath, zipFileBasePath);
+
+                    var stream = System.IO.File.OpenRead(zipFileBasePath);
+                    return new FileStreamResult(stream, "application/zip")
+                    {
+                        FileDownloadName = file.FileName + ".zip"
+                    };
+                }
             }
             else
             {
@@ -588,6 +607,29 @@ namespace DinoShare.Controllers
             catch (Exception ex)
             {
                 HelperFunctions.Log(_context, PublicEnums.LogLevel.LEVEL_EXCEPTION, "Checklist.Controllers.FileShareController.RemoveFile", ex.Message, User, ex);
+            }
+
+            return Json(new { result = false, message = "An error occurred. Please try again later." });
+        }
+
+        [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme, Roles = PublicEnums.UserRoleList.ROLE_ADMINISTRATOR + "," + PublicEnums.UserRoleList.ROLE_USER)]
+        public async Task<IActionResult> AddNewFolder(string NewFolderName, Guid FolderID, Guid? ParentFolderDirectoryFileID)
+        {
+            try
+            {
+                FolderFileListViewModel model = new FolderFileListViewModel();
+                model._context = _context;
+                model._emailService = _emailService;
+                model._securityOptions = _securityOptions;
+                model._user = User;
+
+                await model.AddNewFolder(NewFolderName, FolderID, ParentFolderDirectoryFileID);
+
+                return Json(new { result = true, message = "Folder added successfully" });
+            }
+            catch (Exception ex)
+            {
+                HelperFunctions.Log(_context, PublicEnums.LogLevel.LEVEL_EXCEPTION, "Checklist.Controllers.FileShareController.AddNewFolder", ex.Message, User, ex);
             }
 
             return Json(new { result = false, message = "An error occurred. Please try again later." });

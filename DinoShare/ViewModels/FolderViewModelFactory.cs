@@ -560,7 +560,7 @@ namespace DinoShare.ViewModels.FolderViewModelFactory
             await _context.SaveChangesAsync();
             FolderDirectoryID = folderDir.FolderDirectoryID;
 
-            BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.subRescanDirectories(FolderDirectoryID));
+            BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.subRescanDirectories(FolderDirectoryID, null));
 
             return FolderDirectoryID;
         }

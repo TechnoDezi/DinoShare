@@ -60,7 +60,7 @@ namespace DinoShare.Helpers
             }
         }
 
-        public async Task subRescanDirectories(Guid folderDirectoryID)
+        public async Task subRescanDirectories(Guid folderDirectoryID, Guid? parentFolderDirectoryFileID = null)
         {
             try
             {
@@ -69,10 +69,19 @@ namespace DinoShare.Helpers
                     var folderDir = _context.FolderDirectories.Where(x => x.FolderDirectoryID == folderDirectoryID).FirstOrDefault();
                     if (folderDir != null)
                     {
-                        var files = _context.FolderDirectoryFiles.Where(x => x.FolderDirectoryID == folderDirectoryID).ToList();
-                        foreach (var file in files)
+                        var parentFolderFile = _context.FolderDirectoryFiles.FirstOrDefault(x => x.FolderDirectoryFileID == parentFolderDirectoryFileID);
+
+                        if (parentFolderFile == null)
                         {
-                            _context.Remove(file);
+                            var files = _context.FolderDirectoryFiles.Where(x => x.FolderDirectoryID == folderDirectoryID).ToList();
+                            foreach (var file in files)
+                            {
+                                _context.Remove(file);
+                            }
+                        }
+                        else
+                        {
+                            await subRescanDirectoriesRemoveFiles(folderDirectoryID, parentFolderDirectoryFileID);
                         }
 
                         if (folderDir.RequireCredentials)
@@ -82,7 +91,14 @@ namespace DinoShare.Helpers
                             theNetcache.Add((new Uri(folderDir.FolderPath)), "Basic", networkCredential);
                         }
 
-                        await RescanDirectoriesLoadFiles(null, folderDir.FolderPath, folderDir);
+                        if (parentFolderFile == null)
+                        {
+                            await RescanDirectoriesLoadFiles(null, folderDir.FolderPath, folderDir);
+                        }
+                        else
+                        {
+                            await RescanDirectoriesLoadFiles(parentFolderDirectoryFileID, parentFolderFile.FullPath, folderDir);
+                        }
                     }
 
                     await _context.SaveChangesAsync();
@@ -91,6 +107,17 @@ namespace DinoShare.Helpers
             catch (Exception ex)
             {
                 HelperFunctions.Log(_context, PublicEnums.LogLevel.LEVEL_EXCEPTION, "Helpers.BackgroundJobHelper.subRescanDirectories", ex.Message, null, ex);
+            }
+        }
+
+        public async Task subRescanDirectoriesRemoveFiles(Guid folderDirectoryID, Guid? parentFolderDirectoryFileID = null)
+        {
+            var files = _context.FolderDirectoryFiles.Where(x => x.FolderDirectoryID == folderDirectoryID && x.ParentFolderDirectoryFileID == parentFolderDirectoryFileID).ToList();
+            foreach (var file in files)
+            {
+                await subRescanDirectoriesRemoveFiles(folderDirectoryID, file.FolderDirectoryFileID);
+
+                _context.Remove(file);
             }
         }
 
@@ -164,6 +191,46 @@ namespace DinoShare.Helpers
             }
         }
 
+        public async Task DeleteFile(string path)
+        {
+            //Sleep a bit to give time for resources to release
+            await Task.Delay(20000);
+
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+
+        public async Task DeleteOldDirectoriesAndFiles()
+        {
+            var folder = Path.Combine(_env.ContentRootPath, "App_Data");
+
+            //Remove old directories
+            var directories = Directory.GetDirectories(folder);
+            foreach(var dir in directories)
+            {
+                DirectoryInfo info = new DirectoryInfo(dir);
+
+                if((DateTime.Now - info.CreationTime).TotalHours > 48)
+                {
+                    BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.DeleteFolder(dir));
+                }
+            }
+
+            //Remove old files
+            var files = Directory.GetFiles(folder);
+            foreach (var file in files)
+            {
+                FileInfo info = new FileInfo(file);
+
+                if ((DateTime.Now - info.CreationTime).TotalHours > 48)
+                {
+                    BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.DeleteFile(file));
+                }
+            }
+        }
+
         public async Task CommitFileChunks(DzCommit model)
         {
             string path = "";
@@ -232,7 +299,7 @@ namespace DinoShare.Helpers
                                 System.IO.File.Move(dest, finaldest);
 
                                 BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.DeleteFolder(path));
-                                BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.subRescanDirectories(uploadDirectory.FolderDirectoryID));
+                                BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.subRescanDirectories(uploadDirectory.FolderDirectoryID, model.parentFolderDirectoryFileID));
                             }
                         }
                     }
