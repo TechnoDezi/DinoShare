@@ -10,6 +10,7 @@ using DinoShare.Models;
 using DinoShare.ViewModels;
 using DinoShare.ViewModels.FileListViewModelFactory;
 using DinoShare.ViewModels.FolderViewModelFactory;
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
@@ -572,21 +573,28 @@ namespace DinoShare.Controllers
                 }
                 else
                 {
-                    var zipFileBasePath = Path.Combine(_env.ContentRootPath, "App_Data", file.FileName + "_" + Guid.NewGuid().ToString() + ".zip");
+                    BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.CreateZipArchiveSendEmail(file.FolderDirectoryFileID, userHelper.user.EmailAddress, userHelper.user.DisplayName));
 
-                    ZipFile.CreateFromDirectory(file.FullPath, zipFileBasePath);
-
-                    var stream = System.IO.File.OpenRead(zipFileBasePath);
-                    return new FileStreamResult(stream, "application/zip")
-                    {
-                        FileDownloadName = file.FileName + ".zip"
-                    };
+                    return View("DownloadFileQueued");
                 }
             }
             else
             {
                 return new EmptyResult();
             }
+        }
+
+        [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme, Roles = PublicEnums.UserRoleList.ROLE_ADMINISTRATOR + "," + PublicEnums.UserRoleList.ROLE_USER)]
+        public async Task<IActionResult> DownloadFileArchive(string F)
+        {
+            FileInfo info = new FileInfo(F);
+
+            var stream = System.IO.File.OpenRead(F);
+
+            return new FileStreamResult(stream, "application/zip")
+            {
+                FileDownloadName = info.Name
+            };
         }
 
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme, Roles = PublicEnums.UserRoleList.ROLE_ADMINISTRATOR + "," + PublicEnums.UserRoleList.ROLE_USER)]

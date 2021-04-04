@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Hosting;
 using System.Web;
 using System.Net.Http;
 using System.Net;
+using System.IO.Compression;
+using DinoShare.TemplateParser;
 
 namespace DinoShare.Helpers
 {
@@ -324,6 +326,30 @@ namespace DinoShare.Helpers
             finally
             {
                 BackgroundJob.Enqueue<BackgroundJobHelper>(x => x.DeleteFolder(path));
+            }
+        }
+
+        public async Task CreateZipArchiveSendEmail(Guid folderDirectoryFileID, string emailAddress, string displayName)
+        {
+            var item = _context.FolderDirectoryFiles.FirstOrDefault(x => x.FolderDirectoryFileID == folderDirectoryFileID);
+            if(item != null)
+            {
+                var zipFileBasePath = Path.Combine(_env.ContentRootPath, "App_Data", item.FileName + "_" + Guid.NewGuid().ToString() + ".zip");
+
+                ZipFile.CreateFromDirectory(item.FullPath, zipFileBasePath);
+
+                if (!string.IsNullOrEmpty(emailAddress))
+                {
+                    var downloadLink = _securityOptions.WebsiteHostUrl + "/FileShare/DownloadFileArchive?F=" + System.Net.WebUtility.UrlEncode(zipFileBasePath);
+
+                    var variables = new Dictionary<string, PropertyMetaData>
+                        {
+                            {"ZipDownloadLink", new PropertyMetaData {Type = typeof (string), Value = downloadLink}},
+                            {"DisplayName", new PropertyMetaData {Type = typeof (string), Value = displayName}},
+                        };
+
+                    await _emailService.SendEmailAsync(new List<string>() { emailAddress }, "File ready for download", PublicEnums.EmailTemplateList.NTF_FILE_READY_DOWNLOAD, variables, null);
+                }
             }
         }
     }

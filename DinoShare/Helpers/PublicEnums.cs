@@ -23,6 +23,7 @@ namespace DinoShare.Helpers
             NTF_REGISTRATION_WELCOME_CUSTOM,
             NTF_PASSWORD_RESET_LINK,
             NTF_PASSWORD_CHANGED,
+            NTF_FILE_READY_DOWNLOAD
         }
 
         public enum LogLevel
