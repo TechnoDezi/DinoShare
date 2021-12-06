@@ -211,7 +211,7 @@ namespace DinoShare.Controllers
         }
 
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> Profile()
+        public async Task<IActionResult> Profile(bool Success = false)
         {
             UserDetailsViewModel model = new UserDetailsViewModel();
 
@@ -230,18 +230,24 @@ namespace DinoShare.Controllers
             }
             catch (Exception ex)
             {
-                HelperFunctions.Log(_context, PublicEnums.LogLevel.LEVEL_EXCEPTION, "Controllers.AccountController.ChangePassword", ex.Message, User, ex);
+                HelperFunctions.Log(_context, PublicEnums.LogLevel.LEVEL_EXCEPTION, "Controllers.AccountController.Profile", ex.Message, User, ex);
                 ViewBag.Error = "An error occurred while loading profile details";
             }
 
             ViewData.Model = model;
+
+            if (Success)
+            {
+                ViewBag.Success = "Profile updated successfully";
+            }
+
 
             return View();
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> Profile(UserDetailsViewModel model, bool Success = false)
+        public async Task<IActionResult> Profile(UserDetailsViewModel model)
         {
 
             if (ModelState.IsValid)
@@ -263,7 +269,7 @@ namespace DinoShare.Controllers
                         {
                             ViewBag.Success = "Profile updated successfully";
 
-                            return RedirectToAction(nameof(Profile));
+                            return RedirectToAction(nameof(Profile), new { Success = true });
                         }
                         else
                         {
@@ -277,6 +283,11 @@ namespace DinoShare.Controllers
                     ViewBag.Error = "An error occurred while updating your profile";
                 }
             }
+            else
+            {
+                ViewBag.Error = "Error Updating Profile";
+            }
+
             return View(model);
         }
 

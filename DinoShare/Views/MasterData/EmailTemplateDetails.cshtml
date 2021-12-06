@@ -44,36 +44,37 @@
                                     </p>
                                 </div>
                             }
-                            <form asp-controller="MasterData" asp-action="EmailTemplateDetails" class="form-horizontal">
-                                <div class="form-group">
-                                    <label class="control-label">Event Code</label><br />
-                                    <label class="form-control-static">@Model.EventCode</label>
+                        <form asp-controller="MasterData" asp-action="EmailTemplateDetails" class="form-horizontal">
+                            <div class="form-group">
+                                <label class="control-label">Event Code</label><br />
+                                <label class="form-control-static">@Model.EventCode</label>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">Description</label>
+                                <input type="text" class="form-control" asp-for="Description">
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">Template tags</label><br />
+                                @foreach (var item in Model.TemplateBodyTags)
+                                {
+                                    <span style="border:solid 1px gray;padding:4px">@item</span>
+                                }
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">Template Body</label>
+                                <textarea class="form-control" rows="10" asp-for="TemplateBody"></textarea>
+                            </div>
+                            <input type="hidden" asp-for="EmailTemplateID" />
+                            <input type="hidden" asp-for="TemplateBodyTags" />
+                            <input type="hidden" asp-for="EventCode" />
+                            <hr />
+                            <div class="row">
+                                <div class="col-md-12 text-right">
+                                    <a href="/MasterData/EmailTemplateList" class="btn btn-link">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
                                 </div>
-                                <div class="form-group">
-                                    <label class="control-label">Description</label>
-                                    <input type="text" class="form-control" asp-for="Description">
-                                </div>
-                                <div class="form-group">
-                                    <label class="control-label">Template tags</label><br />
-                                    @foreach (var item in Model.TemplateBodyTags)
-                                    {
-                                        <span style="border:solid 1px gray;padding:4px">@item</span>
-                                    }
-                                </div>
-                                <div class="form-group">
-                                    <label class="control-label">Template Body</label>
-                                    <textarea class="form-control" rows="10" asp-for="TemplateBody"></textarea>
-                                </div>
-                                <input type="hidden" asp-for="EmailTemplateID" />
-                                <input type="hidden" asp-for="TemplateBodyTags" />
-                                <hr />
-                                <div class="row">
-                                    <div class="col-md-12 text-right">
-                                        <a href="/MasterData/EmailTemplateList" class="btn btn-link">Cancel</a>
-                                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                                    </div>
-                                </div>
-                            </form>
+                            </div>
+                        </form>
                         </div>
                     </div>
                 </div>
