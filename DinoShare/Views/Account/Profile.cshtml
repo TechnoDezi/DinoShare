@@ -1,0 +1,77 @@
+﻿@model DinoShare.ViewModels.UsersViewModelFactory.UserDetailsViewModel
+@{
+    ViewData["Title"] = "Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Scripts
+    {
+    <script type="text/javascript">
+     $(function () {
+         @if (!string.IsNullOrEmpty(ViewBag.Error))
+        {
+            <text>
+                App.BaseFunctions.ShowNotification("danger", "@ViewBag.Error", "Error", 100000);
+            </text>
+        }
+        else if (!string.IsNullOrEmpty(ViewBag.Success))
+        {
+            <text>
+              App.BaseFunctions.ShowNotification("success","@ViewBag.Success" ,  "Success", 5000);
+            </text>
+        }
+    });
+    </script>
+}
+<div class="panel">
+    <div class="pad-all file-manager">
+        <div class="fixed-fluid">
+            <div class="fluid file-panel">
+                <div class="bord-btm pad-ver">
+                    <ol class="breadcrumb">
+                        <li><a href="#">Account</a></li>
+                        <li><a href="#">Profile</a></li>
+                        <li class="active">Details</li>
+                    </ol>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-12 p-4">
+                            <form asp-controller="Account" asp-action="Profile" class="form-horizontal">
+                                <h4>User Details</h4>
+                                <div class="form-group">
+                                    <label class="control-label">First Name</label>
+                                    <input type="text" class="form-control" asp-for="FirstName">
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">Surname</label>
+                                    <input type="text" class="form-control" asp-for="Surname">
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">Your email address</label>
+                                    <input type="text" class="form-control" asp-for="EmailAddress">
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">What would you like to be called</label>
+                                    <input type="text" class="form-control" asp-for="DisplayName">
+                                </div>                               
+                                <div class="form-group">
+                                    <label class="control-label">Timezone</label>
+                                    <select class="form-control" asp-for="SelectedTimezone" asp-items="Model.Timezones"></select>
+                                </div>
+                                <input type="hidden" asp-for="UserID" />
+                                <hr />
+                                <div class="row">
+                                    <div class="col-md-12 text-right">
+                                        <a href="/Account/Profile" class="btn btn-link">Cancel</a>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
